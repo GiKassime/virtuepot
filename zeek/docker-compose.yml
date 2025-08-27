@@ -1,96 +1,70 @@
 version: "3.9"
+
 services:
   elasticsearch:
-    build: 
-     context: ./elasticsearch
-     dockerfile: Dockerfile
-    stdin_open: true # docker run -i
-    tty: true 
-    privileged: true
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.2
     environment:
-      # - bootstrap.memory_lock=true
       - discovery.type=single-node
-      # - ELASTICSEARCH_USERNAME=elastic
-      # - ELASTIC_PASSWORD=Virtue@123
-      # - xpack.security.enabled=true
-      #  - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - xpack.security.enabled=false # Descomentei e separei esta linha
     ports:
       - "9200:9200"
     networks:
       - elastinet
+    volumes:
+      - esdata:/usr/share/elasticsearch/data # Adicionado volume para persistência dos dados
 
   kibana:
+    image: docker.elastic.co/kibana/kibana:7.10.2
     depends_on:
       - elasticsearch
-    build: 
-     context: ./kibana
-     dockerfile: Dockerfile
-    stdin_open: true # docker run -i
-    tty: true 
-    privileged: true
     environment:
-    #   - ELASTICSEARCH_USERNAME=elastic
-    #   - ELASTICSEARCH_PASSWORD=Virtue@123
-       - xpack.reporting.enabled=false
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - xpack.reporting.enabled=false # Separei esta linha
     ports:
       - "5601:5601"
-    links:
-      - elasticsearch
     networks:
       - elastinet
 
   filebeat:
+    image: docker.elastic.co/beats/filebeat:7.10.2
+    user: root
     depends_on:
       - kibana
-    build: 
-     context: ./filebeat
-     args:
-             VERSION : 7.7.1
-     dockerfile: Dockerfile
-    stdin_open: true # docker run -i
-    tty: true 
-    privileged: true
-    # environment:
-    #   - ELASTICSEARCH_USERNAME=elastic
-    #   - ELASTICSEARCH_PASSWORD=Virtue@123
-    links:
-      - kibana
-      - elasticsearch
     volumes:
       - pcap:/pcap
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro # Descomentei e separei
     command: -e
     networks:
       - elastinet
 
   zeek:
-    # depends_on:
-    #   - filebeat
-    build: 
-     context: ./zeek/elastic
-     dockerfile: Dockerfile
-    stdin_open: true # docker run -i
-    tty: true 
+    build:
+      context: ./zeek/elastic
+      dockerfile: Dockerfile
+    stdin_open: true
+    tty: true
     privileged: true
     volumes:
       - pcap:/pcap
     cap_add:
+      - NET_ADMIN # NET_RAW é geralmente usado com NET_ADMIN
       - NET_RAW
     network_mode: "host"
-    # command: zeek -i af_packet::eth0 local
-    entrypoint: ["zeek", "-i", "af_packet::ens160", "local" ]
+    # O entrypoint está correto se "enp0s3" for a interface que você quer monitorar no host
+    entrypoint: ["zeek", "-i", "af_packet::enp0s3", "local"]
 
 networks:
   elastinet:
     driver: bridge
     name: elastinet
     ipam:
-     config:
-       - subnet: 192.168.3.0/24
-         gateway: 192.168.3.1
+      config:
+        - subnet: 192.168.3.0/24
+          gateway: 192.168.3.1
     driver_opts:
       com.docker.network.bridge.name: elastinet
 
-
-
 volumes:
-    pcap:
+  pcap: {}
+  esdata: {} # Declarando o volume de dados do Elasticsearch

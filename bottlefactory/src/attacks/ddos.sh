@@ -1,8 +1,12 @@
 #!/bin/bash
-log-dir = $1
-log-file = $2
+log-dir=$1
+log-file=$2
 sudo chmod 777 $1
-echo "">$2
+echo "" > $2
+
+# Adiciona a flag no log
+echo "FLAG{C7F_0T_5UC3SS}" >> $2
+
 python3 DDosAgent.py 'A' &
 python3 DDosAgent.py 'B' &
 python3 DDosAgent.py 'C' &

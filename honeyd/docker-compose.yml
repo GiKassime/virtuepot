@@ -1,40 +1,21 @@
 version: "3.9"
 services:
-  honeyd:
-    build: .
-    privileged: true
-    entrypoint: ["honeyd", "-d", "-i", "eth0", "-f", "honeyd.conf", "-l", "/app/logs/test.log"]
-    container_name: honeyd
+  ctf_service:
+    image: alpine
+    container_name: ctf_flag_service
+    # O comando abaixo abre a porta 1337 e envia o conteúdo do ficheiro flag1.sh
+    command: sh -c "while true; do { cat /flag1.sh; } | nc -l -p 1337; done"
     volumes:
-      - src:/app/logs/
+      # Mapeia o seu ficheiro local flag1.sh para dentro do contentor
+      - ./flag1.sh:/flag1.sh
     ports:
-      - 505:502
-      - 102:102
+      - "1337:1337"
     networks:
-      fnet:
-        ipv4_address: 192.168.1.32
-      
-        
+      - phynet
+      - icsnet
+
 networks:
-  wnet:
-    driver: bridge
-    name: icsnet
-    ipam:
-     config:
-       - subnet: 192.168.0.0/24
-         gateway: 192.168.0.1
-    driver_opts:
-      com.docker.network.bridge.name: br_icsnet
-  fnet:
-    driver: bridge
-    name: phynet
-    ipam:
-     config:
-       - subnet: 192.168.1.0/24
-         gateway: 192.168.1.1 
-    driver_opts:
-      com.docker.network.bridge.name: br_phynet
-
-
-volumes:
-    src:
+  phynet:
+    external: true
+  icsnet:
+    external: true

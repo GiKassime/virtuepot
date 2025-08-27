@@ -247,7 +247,42 @@
                     <!--/Graph Card-->
                 </div>
 
-                
+                <!-- Botões das válvulas -->
+                <div class="w-full flex justify-center items-center my-8">
+                    <div class="bg-white border rounded shadow p-8 text-center max-w-md w-full">
+                        <h5 class="font-bold uppercase text-gray-600 mb-6 text-xl">Controle de Válvulas</h5>
+                        <button
+                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded m-4 text-lg"
+                            onclick="toggleValve('tank_input_valve')">
+                            Abrir Válvula de Entrada
+                        </button>
+                        <button
+                            class="bg-green-500 hover:bg-green-700 text-white font-bold py-3 px-6 rounded m-4 text-lg"
+                            onclick="toggleValve('tank_output_valve')">
+                            Abrir Válvula de Saída
+                        </button>
+                        <div id="status-flag" class="mt-6 text-red-600 font-bold text-lg"></div>
+                    </div>
+                </div>
+
+                <script>
+                function toggleValve(valve) {
+                    const formData = new FormData();
+                    formData.append('valve', valve);
+
+                    fetch('/toggle_valve', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('status-flag').textContent = data.status;
+                        if (data.flag) {
+                            document.getElementById('status-flag').textContent += ' | ' + data.flag;
+                        }
+                    });
+                }
+                </script>
     
                
 
