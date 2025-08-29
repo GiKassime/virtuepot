@@ -1,21 +1,26 @@
 #!/bin/bash
-log-dir=$1
-log-file=$2
-sudo chmod 777 $1
-echo "" > $2
+log_dir=$1
+log_file=$2
 
-# Adiciona a flag no log
-echo "FLAG{C7F_0T_5UC3SS}" >> $2
+# --- AJUSTE PRINCIPAL ---
+# Obtém o diretório do próprio script e muda para o diretório /bottlefactory/src
+SCRIPT_DIR=$(dirname "$0")
+cd "$SCRIPT_DIR/../" # Navega de 'attacks' para 'src'
 
+# Agora que estamos no diretório certo, os caminhos funcionarão.
+# Garante que o diretório de log exista (usando o caminho absoluto do argumento).
+mkdir -p "$log_dir"
+# Cria o ficheiro de log.
+echo "" > "$log_file"
+# Adiciona a flag no log.
+echo "FLAG{C7F_0T_5UC3SS}" >> "$log_file"
+
+# Chama os agentes. O Python agora será executado a partir de /bottlefactory/src/,
+# e encontrará os seus próprios módulos e caminhos de log corretamente.
 python3 DDosAgent.py 'A' &
 python3 DDosAgent.py 'B' &
 python3 DDosAgent.py 'C' &
 python3 DDosAgent.py 'D' &
-#python3 DDosAgent.py 'E' &
-#python3 DDosAgent.py 'F' &
-#python3 DDosAgent.py 'G' &
-#python3 DDosAgent.py 'H' &
-#python3 DDosAgent.py 'I' &
 python3 DDosAgent.py 'J'
 
-sudo chmod 777 $2
+chmod 777 "$log_file"

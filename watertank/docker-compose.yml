@@ -36,6 +36,7 @@ services:
     volumes:
       - "/etc/timezone:/etc/timezone:ro"
       - "/etc/localtime:/etc/localtime:ro"
+      - ../bottlefactory:/bottlefactory
     ports:
       - 5000:5000
     networks:

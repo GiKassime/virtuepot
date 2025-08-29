@@ -65,6 +65,7 @@ services:
     container_name: hmi1
     volumes:
       - src:/src
+      - "../bottlefactory:/bottlefactory:ro"
       - "/etc/timezone:/etc/timezone:ro"
       - "/etc/localtime:/etc/localtime:ro"
     networks:
