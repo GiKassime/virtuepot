@@ -1,20 +1,22 @@
+# ======================== ENTRADA DOS LOGS DE ATAQUE ==========================
+filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /attack-logs/*.log
+
+# ============================ MÓDULO DO ZEEK ===============================
 filebeat.config:
   modules:
     path: ${path.config}/modules.d/*.yml
     reload.enabled: false
 
-# filebeat.autodiscover:
-#   providers:
-#     - type: docker
-#       hints.enabled: true
-
 filebeat.modules:
 - module: zeek
-  # All logs
   connection:
     enabled: true
     var.paths:
-      - /pcap/conn*.log    
+      - /pcap/conn*.log
   dns:
     enabled: true
     var.paths:
@@ -36,11 +38,12 @@ filebeat.modules:
     var.paths:
       - /pcap/notice*.log
 
+# ======================== PROCESSADORES E SAÍDA ===============================
 processors:
 - add_cloud_metadata: ~
 
 output.elasticsearch:
-  hosts: '${ELASTICSEARCH_HOSTS:elasticsearch:9200}'
+  hosts: ["${ELASTICSEARCH_HOSTS:elasticsearch:9200}"]
   username: '${ELASTICSEARCH_USERNAME:}'
   password: '${ELASTICSEARCH_PASSWORD:}'
 

@@ -3,38 +3,49 @@ version: "3.9"
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.10.2
+    container_name: zeek-elasticsearch-1 # Adicionado para consistência
     environment:
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms2g -Xmx2g
-      - xpack.security.enabled=false # Descomentei e separei esta linha
+      - xpack.security.enabled=false
     ports:
       - "9200:9200"
     networks:
       - elastinet
     volumes:
-      - esdata:/usr/share/elasticsearch/data # Adicionado volume para persistência dos dados
+      - esdata:/usr/share/elasticsearch/data
 
   kibana:
     image: docker.elastic.co/kibana/kibana:7.10.2
+    container_name: zeek-kibana-1 # Adicionado para consistência
     depends_on:
       - elasticsearch
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      - xpack.reporting.enabled=false # Separei esta linha
+      - xpack.reporting.enabled=false
     ports:
       - "5601:5601"
     networks:
       - elastinet
 
   filebeat:
+    # Se você tem um Dockerfile para o filebeat, use 'build'
+    # build:
+    #   context: ./filebeat
+    #   dockerfile: Dockerfile
+    # Se não, use 'image'
     image: docker.elastic.co/beats/filebeat:7.10.2
+    container_name: zeek-filebeat-1 # Adicionado para consistência
     user: root
     depends_on:
       - kibana
     volumes:
-      - pcap:/pcap
-      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro # Descomentei e separei
-    command: -e
+      # Volume para os logs do Zeek
+      - pcap:/pcap:ro
+      # Monta o arquivo de configuração do Filebeat
+      - ./filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      # Volume compartilhado com o HMI para pegar os logs de ataque
+      - ../attack-logs:/attack-logs:ro
     networks:
       - elastinet
 
@@ -42,29 +53,29 @@ services:
     build:
       context: ./zeek/elastic
       dockerfile: Dockerfile
+    container_name: zeek-zeek-1 # Adicionado para consistência
     stdin_open: true
     tty: true
     privileged: true
     volumes:
       - pcap:/pcap
     cap_add:
-      - NET_ADMIN # NET_RAW é geralmente usado com NET_ADMIN
+      - NET_ADMIN
       - NET_RAW
+    # O network_mode: "host" é poderoso, mas pode complicar a comunicação
+    # entre contêineres. Mantido conforme o original.
     network_mode: "host"
-    # O entrypoint está correto se "enp0s3" for a interface que você quer monitorar no host
-    entrypoint: ["zeek", "-i", "af_packet::enp0s3", "local"]
+    # ATENÇÃO: 'enp0s3' é o nome de uma interface de rede.
+    # Certifique-se de que é a interface correta que você quer monitorar.
+    entrypoint: ["zeek", "-i", "enp0s3", "local"]
 
 networks:
   elastinet:
     driver: bridge
-    name: elastinet
-    ipam:
-      config:
-        - subnet: 192.168.3.0/24
-          gateway: 192.168.3.1
-    driver_opts:
-      com.docker.network.bridge.name: elastinet
+    # Removido o 'name' e 'ipam' para deixar o Docker gerenciar,
+    # o que evita conflitos e é mais simples.
+    # Se precisar de IP fixo, pode adicionar de volta.
 
 volumes:
   pcap: {}
-  esdata: {} # Declarando o volume de dados do Elasticsearch
+  esdata: {}

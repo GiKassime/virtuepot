@@ -3,46 +3,78 @@ filebeat.config:
     path: ${path.config}/modules.d/*.yml
     reload.enabled: false
 
+# Caso queira habilitar autodiscover do Docker futuramente
 # filebeat.autodiscover:
 #   providers:
 #     - type: docker
 #       hints.enabled: true
 
+# ==============================
+# Módulos do Zeek (pcap)
+# ==============================
 filebeat.modules:
-- module: zeek
-  # All logs
-  connection:
-    enabled: true
-    var.paths:
-      - /pcap/conn*.log    
-  dns:
-    enabled: true
-    var.paths:
-      - /pcap/dns*.log
-  http:
-    enabled: true
-    var.paths:
-      - /pcap/http*.log
-  files:
-    enabled: true
-    var.paths:
-      - /pcap/files*.log
-  ssl:
-    enabled: true
-    var.paths:
-      - /pcap/ssl*.log
-  notice:
-    enabled: true
-    var.paths:
-      - /pcap/notice*.log
+  - module: zeek
+    connection:
+      enabled: true
+      var.paths:
+        - /pcap/conn*.log    
 
+    dns:
+      enabled: true
+      var.paths:
+        - /pcap/dns*.log
+
+    http:
+      enabled: true
+      var.paths:
+        - /pcap/http*.log
+
+    files:
+      enabled: true
+      var.paths:
+        - /pcap/files*.log
+
+    ssl:
+      enabled: true
+      var.paths:
+        - /pcap/ssl*.log
+
+    notice:
+      enabled: true
+      var.paths:
+        - /pcap/notice*.log
+
+# ==============================
+# Inputs extras (ataques)
+# ==============================
+filebeat.inputs:
+  - type: log
+    enabled: true
+    paths:
+      - /attack-logs/*.log
+
+
+    fields:
+      log_type: ddos_attack
+    fields_under_root: true
+
+# ==============================
+# Processadores
+# ==============================
 processors:
-- add_cloud_metadata: ~
+  - add_cloud_metadata: ~
 
+# ==============================
+# Saída para Elasticsearch
+# ==============================
 output.elasticsearch:
-  hosts: '${ELASTICSEARCH_HOSTS:elasticsearch:9200}'
-  username: '${ELASTICSEARCH_USERNAME:}'
-  password: '${ELASTICSEARCH_PASSWORD:}'
+  hosts: ["${ELASTICSEARCH_HOSTS:elasticsearch:9200}"]
+  username: "${ELASTICSEARCH_USERNAME:}"
+  password: "${ELASTICSEARCH_PASSWORD:}"
 
+# ==============================
+# Kibana setup
+# ==============================
 setup.kibana:
-  host: '${KIBANA_HOST:kibana:5601}'
+  host: "${KIBANA_HOST:kibana:5601}"
+

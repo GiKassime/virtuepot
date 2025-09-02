@@ -37,6 +37,8 @@ services:
       - "/etc/timezone:/etc/timezone:ro"
       - "/etc/localtime:/etc/localtime:ro"
       - ../bottlefactory:/bottlefactory
+      - ../attack-logs:/attack-logs
+
     ports:
       - 5000:5000
     networks:

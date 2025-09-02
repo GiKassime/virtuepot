@@ -1,70 +1,89 @@
-from flask import Flask, render_template, current_app, request, session
+from flask import Flask, render_template, request, session, jsonify
 from pymodbus.client.sync import ModbusTcpClient
 from datetime import datetime
-from flask import jsonify
 import secrets
 import subprocess
 import os
+import logging
+
+# Adiciona logs para facilitar a depuração no 'docker logs'
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = secrets.token_hex(16)
 
-secret_key = secrets.token_hex(16)
-app.config['SECRET_KEY'] = secret_key
+# CORREÇÃO: Usa o nome do serviço Docker para a conexão
+PLC_HOST = 'openplc_sim_server'
 
 def current_time():
-    now = datetime.now().isoformat()
-    return now
+    return datetime.now().isoformat()
 
 @app.route('/api', methods=['POST', 'GET'])
 def api():
-    host = '192.168.0.26'
-    port = 502
-    client = ModbusTcpClient(host, port)
-    client.connect()
-    result = client.read_holding_registers(101, 10, unit=0)
-    data = {
-        "datetime": current_time(),
-        "data": result.registers
-    }
-    return jsonify(data)
+    try:
+        client = ModbusTcpClient(PLC_HOST, port=502, timeout=3)
+        if not client.connect():
+            logging.error(f"Falha ao conectar ao PLC em {PLC_HOST}")
+            return jsonify({"error": f"Não foi possível conectar ao PLC"}), 500
+
+        result = client.read_holding_registers(101, 10, unit=0)
+        client.close()
+
+        if result.isError():
+            logging.error("Erro na leitura Modbus")
+            return jsonify({"error": "Erro ao ler registradores Modbus"}), 500
+
+        return jsonify({
+            "datetime": current_time(),
+            "data": result.registers
+        })
+    except Exception as e:
+        logging.error(f"Exceção na API: {e}")
+        return jsonify({"error": "Erro interno do servidor ao contatar o PLC"}), 500
 
 @app.route('/toggle_valve', methods=['POST'])
 def toggle_valve():
     valve = request.form.get('valve')
     if 'sequence' not in session:
         session['sequence'] = []
-    sequence = session['sequence']
-
+    
+    sequence = session.get('sequence', [])
     sequence.append(valve)
     session['sequence'] = sequence
 
-    correct_sequence = ['tank_input_valve', 'tank_input_valve', 'tank_input_valve', 'tank_output_valve', 'tank_output_valve']
+    correct_sequence = [
+        'tank_input_valve', 'tank_input_valve', 'tank_input_valve',
+        'tank_output_valve', 'tank_output_valve'
+    ]
+    
+    # Lógica que verifica a sequência a cada clique
+    if not correct_sequence[:len(sequence)] == sequence:
+        session.pop('sequence', None) # Limpa a sessão
+        return jsonify({"status": "Sequência incorreta. Reiniciando."})
+
     if sequence == correct_sequence:
-        # --- AJUSTE PRINCIPAL ---
-        # Utiliza caminhos absolutos, assumindo que a pasta 'bottlefactory' está na raiz do contentor.
-        base_path = "/bottlefactory" 
-        log_dir = os.path.join(base_path, "src/attacks/attack-logs")
-        log_file = os.path.join(log_dir, "log-ddos.txt")
-        script_path = os.path.join(base_path, "src/attacks/ddos.sh")
+        log_dir = "/attack-logs"
+        log_file = os.path.join(log_dir, "log-ddos.log")
+        script_path = "/bottlefactory/src/attacks/ddos.sh" # Caminho absoluto dentro do contêiner
 
-        # Verifica se o diretório de log existe, se não, cria-o
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-
-        # Executa o ataque DDoS com os argumentos e caminhos absolutos
         try:
-            subprocess.Popen(["bash", script_path, log_dir, log_file])
-            session['sequence'] = []  # Reseta a sequência
+            os.makedirs(log_dir, exist_ok=True)
+            # Usando subprocess.run para melhor controle e feedback
+            subprocess.run(
+                ["bash", script_path, log_dir, log_file], 
+                check=True, capture_output=True, text=True
+            )
+            session.pop('sequence', None)
             return jsonify({"status": "Ataque DDoS iniciado!", "flag": "FLAG{G3r4d0}"})
         except FileNotFoundError:
-            # Esta mensagem de erro ajuda a depurar se o caminho do script estiver errado
-            return jsonify({"status": f"Erro: Script não encontrado em {script_path}", "error": "FileNotFound"}), 500
+            logging.error(f"Script de ataque não encontrado em: {script_path}")
+            return jsonify({"status": f"Erro: Script não encontrado."}), 500
+        except subprocess.CalledProcessError as e:
+            logging.error(f"Erro ao executar script: {e.stderr}")
+            return jsonify({"status": f"Erro ao executar o script."}), 500
         except Exception as e:
-            return jsonify({"status": f"Erro ao executar o script: {str(e)}", "error": "ExecutionFailed"}), 500
-
-    elif len(sequence) >= len(correct_sequence):
-        session['sequence'] = []  # Reseta se a sequência estiver errada
-        return jsonify({"status": "Sequência incorreta. A reiniciar."})
+            logging.error(f"Erro inesperado no toggle_valve: {e}")
+            return jsonify({"status": f"Erro inesperado."}), 500
     else:
         return jsonify({"status": "Botão pressionado."})
 
@@ -73,4 +92,4 @@ def index():
     return render_template('index.html')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', port=5000)
