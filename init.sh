@@ -1,4 +1,20 @@
+
 #!/bin/bash
+
+# Limpeza de redes Docker que podem conflitar com o Virtuepot
+echo "Removendo redes Docker conflitantes (icsnet, phynet)..."
+for net in icsnet phynet; do
+  if docker network inspect "$net" >/dev/null 2>&1; then
+    docker network rm "$net"
+  fi
+done
+
+# Remover bridges customizadas se existirem (br_icsnet, br_phynet)
+for br in br_icsnet br_phynet; do
+  if ip link show "$br" >/dev/null 2>&1; then
+    ip link delete "$br" type bridge || true
+  fi
+done
 
 cwd=$(pwd)
 version=$(lsb_release -rs )
