@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # Limpeza de redes Docker que podem conflitar com o Virtuepot
@@ -97,22 +96,22 @@ docker network inspect phynet >/dev/null 2>&1 || \
 
 
 # RUN Bottle Factory 
-docker-compose -f bottlefactory/docker-compose.yml up -d
+docker-compose -f bottlefactory/docker-compose.yml up -d --build
 
 # RUN Water tank Openplc
-docker-compose -f watertank/docker-compose.yml up -d
+docker-compose -f watertank/docker-compose.yml up -d --build
 
 
 # RUN SCADA LTS
-docker-compose -f scada/docker-compose.yml up -d
+docker-compose -f scada/docker-compose.yml up -d --build
 
 
 #Run the zeek
-docker-compose -f zeek/docker-compose.yml up -d
+docker-compose -f zeek/docker-compose.yml up -d --build
 
 
 #Run the honeyd
-docker-compose -f honeyd/docker-compose.yml up -d
+docker-compose -f honeyd/docker-compose.yml up -d --build
 
 
 #Check the running containers 
