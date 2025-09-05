@@ -1,5 +1,12 @@
 #!/bin/bash
 
+echo "Removendo containers, volumes e redes órfãs do Docker..."
+docker-compose -f bottlefactory/docker-compose.yml down -v
+docker-compose -f watertank/docker-compose.yml down -v
+docker-compose -f scada/docker-compose.yml down -v
+docker-compose -f zeek/docker-compose.yml down -v
+docker-compose -f honeyd/docker-compose.yml down -v
+docker system prune -af --volumes
 # Limpeza de redes Docker que podem conflitar com o Virtuepot
 echo "Removendo redes Docker conflitantes (icsnet, phynet)..."
 for net in icsnet phynet; do
