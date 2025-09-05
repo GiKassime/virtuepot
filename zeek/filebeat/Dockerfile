@@ -27,6 +27,8 @@ RUN set -e; \
       chown root:root "$f" && chmod go-w "$f"; \
     fi; \
   done
+RUN sudo chown root:root zeek/filebeat/config/filebeat.yml
+RUN sudo chmod go-w zeek/filebeat/config/filebeat.yml
 
 COPY entrypoint.sh /usr/local/bin/entrypoint
 RUN chmod +x /usr/local/bin/entrypoint

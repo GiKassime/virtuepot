@@ -42,8 +42,7 @@ services:
     volumes:
       # Volume para os logs do Zeek
       - pcap:/pcap:ro
-      # Monta o arquivo de configuração do Filebeat
-      - ./filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+  # (Removido bind mount do filebeat.yml para evitar problemas de permissão)
       # Volume compartilhado com o HMI para pegar os logs de ataque
       - ../attack-logs:/attack-logs:ro
     networks:
