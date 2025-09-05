@@ -16,7 +16,17 @@ RUN \
 
 ENV PATH $PATH:/usr/share/filebeat
 
+
+# Copia os arquivos de configuração
 COPY config /usr/share/filebeat
+
+# Garante permissões corretas para filebeat.yml e config/filebeat.yml
+RUN set -e; \
+  for f in /usr/share/filebeat/filebeat.yml /usr/share/filebeat/config/filebeat.yml; do \
+    if [ -f "$f" ]; then \
+      chown root:root "$f" && chmod go-w "$f"; \
+    fi; \
+  done
 
 COPY entrypoint.sh /usr/local/bin/entrypoint
 RUN chmod +x /usr/local/bin/entrypoint
