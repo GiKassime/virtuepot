@@ -58,7 +58,27 @@ sudo apt update
 #Disable the firewall
 sudo ufw disable 
 #set the vm.max_map_count for elasticsearch
+
 sysctl -w vm.max_map_count=262144
+
+# Criação das redes Docker necessárias (idempotente)
+echo "Criando redes Docker customizadas..."
+docker network inspect icsnet >/dev/null 2>&1 || \
+  docker network create \
+    --driver=bridge \
+    --subnet=192.168.0.0/24 \
+    --gateway=192.168.0.1 \
+    --opt com.docker.network.bridge.name=br_icsnet \
+    icsnet
+
+docker network inspect phynet >/dev/null 2>&1 || \
+  docker network create \
+    --driver=bridge \
+    --subnet=192.168.1.0/24 \
+    --gateway=192.168.1.1 \
+    --opt com.docker.network.bridge.name=br_phynet \
+    phynet
+
 
 # RUN Bottle Factory 
 docker-compose -f bottlefactory/docker-compose.yml up -d
